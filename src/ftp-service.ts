@@ -51,39 +51,66 @@ export class FtpService {
                 switch (args[0]) {
                     case 'ls':
                         if (args.length === 1)
-                            return (service) => service.list();
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.list();
+                            };
                         break;
                     case 'get':
                         if (args.length < 4)
-                            return (service) => service.get(args[1], args[2]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.get(args[1], args[2]);
+                            };
                         break;
                     case 'put':
                         if (args.length < 4)
-                            return (service) => service.put(args[1], args[2]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.put(args[1], args[2]);
+                            };
                         break;
                     case 'append':
                         if (args.length < 4)
-                            return (service) => service.append(args[1], args[2]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.append(args[1], args[2]);
+                            };
                         break;
                     case 'rename':
                         if (args.length === 3)
-                            return (service) => service.rename(args[1], args[2]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.rename(args[1], args[2]);
+                            };
                         break;
                     case 'delete':
                         if (args.length === 2)
-                            return (service) => service.delete(args[1]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.delete(args[1]);
+                            }
                         break;
                     case 'cd':
                         if (args.length === 2)
-                            return (service) => service.cd(args[1]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.cd(args[1]);
+                            };
                         break;
                     case 'mkdir':
                         if (args.length === 2)
-                            return (service) => service.mkdir(args[1]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.mkdir(args[1]);
+                            };
                         break;
                     case 'rmdir':
                         if (args.length === 2)
-                            return (service) => service.mkdir(args[1]);
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.mkdir(args[1]);
+                            };
                         break;
                 }
             }
@@ -158,7 +185,6 @@ export class FtpService {
                         throw new Error(`Path ${directory} is not a directory.`);
                 } else {
                     fs.mkdirSync(directory);
-                    console.log(`Created directory file ${directory}`);
                 }
                 await this._download(this._join(work, dir), '', directory);
                 await execute(callback => this.client.cdup(callback));
@@ -317,7 +343,6 @@ export class FtpService {
             if (isNotBlank(name)) {
                 await execute(callback => this.client.mkdir(name!, callback));
                 work = this._join(work, name!);
-                console.log(`Created directory ${work}`);
                 await execute(callback => this.client.cwd(name!, callback));
             }
             const elements = fs.readdirSync(path);
@@ -343,7 +368,7 @@ export class FtpService {
             work = '';
             next = path.endsWith('/') ? '' : this._basename(path);
         } else if (dest?.endsWith('/')) {
-            work = dest!;
+            work = dest!.slice(0, dest?.length - 1);
             next = path.endsWith('/') ? '' : this._basename(path);
         } else {
             work = this._dirname(dest!);
@@ -404,7 +429,7 @@ export class FtpService {
     }
 
     async rmdir(path: string) {
-        await execute(callback => this.client.rmdir(path, true, callback));
+        await execute(callback => this.client.rmdir(path, false, callback));
         console.log(`Removed directory to ${path}`);
     }
 }
