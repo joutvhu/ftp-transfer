@@ -8778,9 +8778,19 @@ class FtpService {
                             }
                         }
                     }
+                    if ((0, io_helper_1.isNotBlank)(name) && dirs.length === 0)
+                        throw new Error(`Directory or file ${name} does not exist.`);
                     for (const dir of dirs) {
                         yield execute(callback => this.client.cwd(dir, callback));
-                        yield download('', (0, io_helper_1.isBlank)(parent) ? dir : `${parent}/${dir}`);
+                        const directory = (0, io_helper_1.isBlank)(parent) ? dir : `${parent}/${dir}`;
+                        if (fs.existsSync(directory)) {
+                            if (!fs.lstatSync(path).isDirectory())
+                                throw new Error(`Path ${directory} is not a directory.`);
+                        }
+                        else {
+                            fs.mkdirSync(directory);
+                        }
+                        yield download('', directory);
                         yield execute(callback => this.client.cdup(callback));
                     }
                 }

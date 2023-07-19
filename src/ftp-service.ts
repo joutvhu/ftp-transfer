@@ -167,9 +167,18 @@ export class FtpService {
                         }
                     }
                 }
+                if (isNotBlank(name) && dirs.length === 0)
+                    throw new Error(`Directory or file ${name} does not exist.`)
                 for (const dir of dirs) {
                     await execute(callback => this.client.cwd(dir, callback));
-                    await download('', isBlank(parent) ? dir : `${parent}/${dir}`);
+                    const directory = isBlank(parent) ? dir : `${parent}/${dir}`;
+                    if (fs.existsSync(directory)) {
+                        if (!fs.lstatSync(path).isDirectory())
+                            throw new Error(`Path ${directory} is not a directory.`);
+                    } else {
+                        fs.mkdirSync(directory);
+                    }
+                    await download('', directory);
                     await execute(callback => this.client.cdup(callback));
                 }
             }
