@@ -8555,7 +8555,7 @@ var Inputs;
 (function (Inputs) {
     Inputs["Host"] = "host";
     Inputs["Port"] = "port";
-    Inputs["User"] = "user";
+    Inputs["User"] = "username";
     Inputs["Password"] = "password";
     Inputs["ConnTimeout"] = "connTimeout";
     Inputs["PasvTimeout"] = "pasvTimeout";
@@ -8566,6 +8566,7 @@ var Inputs;
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {
+    Outputs["Succeed"] = "succeed";
 })(Outputs = exports.Outputs || (exports.Outputs = {}));
 
 
@@ -8974,6 +8975,82 @@ exports.FtpService = FtpService;
 
 /***/ }),
 
+/***/ 7258:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(2186));
+const ftp_1 = __importDefault(__nccwpck_require__(9203));
+const ftp_service_1 = __nccwpck_require__(4029);
+const io_helper_1 = __nccwpck_require__(3262);
+(function run() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const inputs = (0, io_helper_1.getInputs)();
+            const client = new ftp_1.default();
+            const service = yield (0, ftp_service_1.execute)(callback => {
+                client.on('ready', () => {
+                    core.info('Connected to ftp server.');
+                    callback(null, new ftp_service_1.FtpService(client));
+                });
+                client.on('error', error => {
+                    if (error)
+                        callback(error);
+                });
+                client.connect(inputs);
+            });
+            if (service != null) {
+                const succeed = yield service.run(inputs.commands);
+                (0, io_helper_1.setOutputs)({ succeed });
+            }
+            client.end();
+        }
+        catch (err) {
+            core.setFailed(err.message);
+        }
+    });
+})();
+
+
+/***/ }),
+
 /***/ 3262:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -9066,82 +9143,6 @@ function setOutputs(response, log) {
         core.info('Outputs:' + message);
 }
 exports.setOutputs = setOutputs;
-
-
-/***/ }),
-
-/***/ 5094:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-const core = __importStar(__nccwpck_require__(2186));
-const ftp_1 = __importDefault(__nccwpck_require__(9203));
-const ftp_service_1 = __nccwpck_require__(4029);
-const io_helper_1 = __nccwpck_require__(3262);
-(function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const inputs = (0, io_helper_1.getInputs)();
-            const client = new ftp_1.default();
-            const service = yield (0, ftp_service_1.execute)(callback => {
-                client.on('ready', () => {
-                    core.info('Connected to ftp server.');
-                    callback(null, new ftp_service_1.FtpService(client));
-                });
-                client.on('error', error => {
-                    if (error)
-                        callback(error);
-                });
-                client.connect(inputs);
-            });
-            if (service != null) {
-                const succeed = yield service.run(inputs.commands);
-                (0, io_helper_1.setOutputs)({ succeed });
-            }
-            client.end();
-        }
-        catch (err) {
-            core.setFailed(err.message);
-        }
-    });
-})();
 
 
 /***/ }),
@@ -9300,7 +9301,7 @@ module.exports = require("zlib");
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(5094);
+/******/ 	var __webpack_exports__ = __nccwpck_require__(7258);
 /******/ 	module.exports = __webpack_exports__;
 /******/ 	
 /******/ })()

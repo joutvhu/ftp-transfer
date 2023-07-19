@@ -1,10 +1,10 @@
 {
-  "name": "publish-ftp",
+  "name": "ftp-transfer",
   "version": "1.0.0",
-  "description": "",
+  "description": "GitHub Action to transfer files to and from a computer running an FTP server service.",
   "scripts": {
     "build": "npm run clean && tsc --project tsconfig.json",
-    "release": "ncc build src/publish-ftp.ts -o action && git add -f action/",
+    "release": "ncc build src/ftp-transfer.ts -o action && git add -f action/",
     "clean": "rimraf -- action",
     "lint": "eslint **/*.ts"
   },
@@ -19,13 +19,13 @@
     "url": "https://github.com/joutvhu"
   },
   "license": "MIT",
-  "homepage": "https://github.com/joutvhu/publish-ftp#readme",
+  "homepage": "https://github.com/joutvhu/ftp-transfer#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/joutvhu/publish-ftp.git"
+    "url": "https://github.com/joutvhu/ftp-transfer.git"
   },
   "bugs": {
-    "url": "https://github.com/joutvhu/publish-ftp/issues"
+    "url": "https://github.com/joutvhu/ftp-transfer/issues"
   },
   "dependencies": {
     "@actions/core": "^1.10.0",

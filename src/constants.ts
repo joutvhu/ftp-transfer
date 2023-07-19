@@ -1,7 +1,7 @@
 export enum Inputs {
     Host = 'host',
     Port = 'port',
-    User = 'user',
+    User = 'username',
     Password = 'password',
     ConnTimeout = 'connTimeout',
     PasvTimeout = 'pasvTimeout',
@@ -12,4 +12,5 @@ export enum Inputs {
 }
 
 export enum Outputs {
+    Succeed = 'succeed'
 }

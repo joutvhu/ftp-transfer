@@ -1,31 +1,38 @@
-name: Get Release
+name: FTP Transfer
 description: Get a release by tag, latest or current release
 author: Giao Ho
 inputs:
   host:
-    # Default: Current owner
-    description: The name of the owner of the repo. Used to identify the owner of the repository.
+    description: The hostname or IP address of the FTP server.
+    required: true
+  port:
+    description: 'The port of the FTP server. Default: 21'
     required: false
-  repo:
-    # Default: Current repository
-    description: The name of the repository. Used to identify the repository on which to release.
+    default: '21'
+  username:
+    description: 'Username for authentication. Default: "anonymous"'
     required: false
+    default: 'anonymous'
+  password:
+    description: 'Password for authentication. Default: "anonymous@"'
+    required: false
+    default: 'anonymous@'
+  connTimeout:
+    description: 'How long (in milliseconds) to wait for the control connection to be established. Default: 10000'
+    required: false
+    default: '10000'
+  pasvTimeout:
+    description: 'How long (in milliseconds) to wait for a PASV data connection to be established. Default: 10000'
+    required: false
+    default: '10000'
+  keepalive:
+    description: 'How often (in milliseconds) to send a "dummy" (NOOP) command to keep the connection alive. Default: 10000'
+    required: false
+    default: '10000'
 
-  tag_name:
-    description: Specify tag instead of using checkout tag.
-    required: false
-
-  latest:
-    description: Should get latest release?
-    required: false
-    default: 'false'
-  prerelease:
-    # This input will be ignored if `latest = false`
-    description: Find the latest release including the pre-releases
-    required: false
-  pattern:
-    description: A pattern string to filter the releases by tag_name
-    required: false
+  commands:
+    description: The ftp commands
+    required: true
 
   debug:
     description: Show ouputs
@@ -34,10 +41,12 @@ inputs:
     description: Fail when no release was found
     required: false
 outputs:
+  succeed:
+    description: Number of commands executed successfully.
 
 runs:
   using: node16
   main: action/index.js
 branding:
-  icon: tag
-  color: blue
+  icon: paperclip
+  color: gray-dark
