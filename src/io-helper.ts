@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import {InputOptions} from '@actions/core';
 import Client from 'ftp';
 import {Inputs, Outputs} from './constants';
 
@@ -13,6 +14,14 @@ export function isBlank(value: any): boolean {
 
 export function isNotBlank(value: any): boolean {
     return value !== null && value !== undefined && (value.length === undefined || value.length > 0);
+}
+
+export function getBooleanInput(name: string, options?: InputOptions): boolean | undefined {
+    const value = core.getInput(name, options);
+    if (isBlank(value))
+        return undefined;
+    return ['y', 'yes', 't', 'true', 'e', 'enable', 'enabled', 'on', 'ok', '1']
+        .includes(value.trim().toLowerCase());
 }
 
 /**
@@ -60,12 +69,12 @@ export function getInputs(): FtpInputs {
         throw new Error('The commands is required.')
     }
 
-    const debug = core.getBooleanInput(Inputs.Debug, {required: false});
+    const debug = getBooleanInput(Inputs.Debug, {required: false});
     if (debug) {
         result.debug = message => core.debug(message);
     }
 
-    const throwing = core.getBooleanInput(Inputs.Throwing, {required: false});
+    const throwing = getBooleanInput(Inputs.Throwing, {required: false});
     result.throwing = throwing == null || throwing;
 
     return result;

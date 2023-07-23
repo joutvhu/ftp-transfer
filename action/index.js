@@ -9333,7 +9333,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.setOutputs = exports.getInputs = exports.isNotBlank = exports.isBlank = void 0;
+exports.setOutputs = exports.getInputs = exports.getBooleanInput = exports.isNotBlank = exports.isBlank = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const constants_1 = __nccwpck_require__(9042);
 function isBlank(value) {
@@ -9344,6 +9344,14 @@ function isNotBlank(value) {
     return value !== null && value !== undefined && (value.length === undefined || value.length > 0);
 }
 exports.isNotBlank = isNotBlank;
+function getBooleanInput(name, options) {
+    const value = core.getInput(name, options);
+    if (isBlank(value))
+        return undefined;
+    return ['y', 'yes', 't', 'true', 'e', 'enable', 'enabled', 'on', 'ok', '1']
+        .includes(value.trim().toLowerCase());
+}
+exports.getBooleanInput = getBooleanInput;
 function getInputs() {
     const result = {
         commands: [],
@@ -9378,11 +9386,11 @@ function getInputs() {
     if (result.commands.length === 0) {
         throw new Error('The commands is required.');
     }
-    const debug = core.getBooleanInput(constants_1.Inputs.Debug, { required: false });
+    const debug = getBooleanInput(constants_1.Inputs.Debug, { required: false });
     if (debug) {
         result.debug = message => core.debug(message);
     }
-    const throwing = core.getBooleanInput(constants_1.Inputs.Throwing, { required: false });
+    const throwing = getBooleanInput(constants_1.Inputs.Throwing, { required: false });
     result.throwing = throwing == null || throwing;
     return result;
 }
