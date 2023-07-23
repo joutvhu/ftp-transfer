@@ -21,7 +21,7 @@ export class FtpService {
     constructor(private client: Client) {
     }
 
-    _firstString(...args: Array<any>): string | undefined {
+    private _firstString(...args: Array<any>): string | undefined {
         for (let i = 0; i < args.length; i++) {
             const arg = args[i];
             if (typeof arg === 'string') {
@@ -30,7 +30,7 @@ export class FtpService {
         }
     }
 
-    _toArgv(command: string): string[] {
+    private _toArgv(command: string): string[] {
         const regexp = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
         const value = command;
         const result: string[] = [];
@@ -44,8 +44,8 @@ export class FtpService {
         return result;
     }
 
-    async run(commands: string[], throwing: boolean = true): Promise<any> {
-        const executable: Command[] = commands.map(command => {
+    private _toCommands(lines: string[]): Command[] {
+        return lines.map(command => {
             const args = this._toArgv(command);
             if (args.length > 0) {
                 switch (args[0]) {
@@ -54,6 +54,11 @@ export class FtpService {
                             return (service) => {
                                 core.info(`Execute '${command}'`);
                                 return service.list();
+                            };
+                        if (args.length === 2)
+                            return (service) => {
+                                core.info(`Execute '${command}'`);
+                                return service.list(args[1]);
                             };
                         break;
                     case 'get':
@@ -105,6 +110,13 @@ export class FtpService {
                                 return service.mkdir(args[1]);
                             };
                         break;
+                    case 'rmdir':
+                        if (args.length === 2)
+                            return (service) => {
+                                core.info(`Execute '${command}'`);
+                                return service.rmdir(args[1]);
+                            };
+                        break;
                     case 'pwd':
                         if (args.length === 1)
                             return (service) => {
@@ -116,6 +128,10 @@ export class FtpService {
             }
             throw new Error(`Unsupported command "${command}"`);
         });
+    }
+
+    async run(lines: string[], throwing: boolean = true): Promise<any> {
+        const commands: Command[] = this._toCommands(lines);
         core.info('Executing commands');
         let result: any = {
             succeed: 0,
@@ -123,7 +139,7 @@ export class FtpService {
             output: []
         };
         try {
-            for (const command of executable) {
+            for (const command of commands) {
                 const r: any = await command(this);
                 result.succeed++;
                 result.output.push(r);
@@ -137,17 +153,21 @@ export class FtpService {
         return result;
     }
 
-    async list() {
+    async list(path?: string) {
         return execute(callback => {
             core.info('Listing');
-            this.client.list((error, listing) => {
+            const cb = (error: Error, listing: Client.ListingElement[]) => {
                 if (listing) {
                     for (const element of listing) {
                         core.info(JSON.stringify(element));
                     }
                 }
                 callback(error, listing != null ? JSON.stringify(listing) : null);
-            });
+            };
+            if (path != null)
+                this.client.list(path, cb);
+            else
+                this.client.list(cb);
         });
     }
 
