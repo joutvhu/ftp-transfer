@@ -203,16 +203,43 @@ export class FtpService {
         return current as string;
     }
 
+    private async _combine(paths: string[]): Promise<string[]> {
+        if (paths.length > 1 && paths[0] === '') {
+            const current: string = await execute(callback => this.client.pwd(callback)) as any;
+            const pn = current.split('/');
+            const l = pn.length;
+            if (l > 1 && pn[0] === '') {
+                let index = 0, len = paths.length;
+                for (let i = 1; i < len && i < l; i++) {
+                    const p = paths[i];
+                    if (p !== pn[i]) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index > 1) {
+                    return pn.slice(index, l).map(() => '..').concat(paths.slice(index, len));
+                }
+            }
+        }
+        return paths;
+    }
+
     private async _back(path: string | number) {
         if (path != null) {
             if (typeof path === 'string') {
-                const paths = path.split('/');
+                const paths = await this._combine(path.split('/'));
                 for (let i = 0, len = paths.length; i < len; i++) {
-                    if (isBlank(paths[i])) {
+                    const p = paths[i];
+                    if (isBlank(p)) {
                         if (i === 0)
                             await this._root();
                         else
                             break;
+                    } else if (p === '.') {
+                        continue;
+                    } else if (p === '..') {
+                        await execute(callback => this.client.cdup(callback));
                     } else {
                         await execute(callback => this.client.cwd(paths[i], callback));
                     }
@@ -311,6 +338,7 @@ export class FtpService {
                 paths = path;
             path = paths.join('/');
         }
+        paths = await this._combine(paths);
         for (let i = 0, len = paths.length; i < len; i++) {
             const p = paths[i];
             if (isBlank(p)) {
