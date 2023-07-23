@@ -12,5 +12,6 @@ export enum Inputs {
 }
 
 export enum Outputs {
-    Succeed = 'succeed'
+    Succeed = 'succeed',
+    Message = 'message'
 }

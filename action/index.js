@@ -8563,11 +8563,12 @@ var Inputs;
     Inputs["Commands"] = "commands";
     Inputs["Throwing"] = "throwing";
     Inputs["Debug"] = "debug";
-})(Inputs = exports.Inputs || (exports.Inputs = {}));
+})(Inputs || (exports.Inputs = Inputs = {}));
 var Outputs;
 (function (Outputs) {
     Outputs["Succeed"] = "succeed";
-})(Outputs = exports.Outputs || (exports.Outputs = {}));
+    Outputs["Message"] = "message";
+})(Outputs || (exports.Outputs = Outputs = {}));
 
 
 /***/ }),
@@ -8651,113 +8652,133 @@ class FtpService {
         } while (match !== null);
         return result;
     }
-    run(commands, throwing = true) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const executable = commands.map(command => {
-                const args = this._toArgv(command);
-                if (args.length > 0) {
-                    switch (args[0]) {
-                        case 'ls':
-                            if (args.length === 1)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.list();
-                                };
-                            break;
-                        case 'get':
-                            if (args.length < 4)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.get(args[1], args[2]);
-                                };
-                            break;
-                        case 'put':
-                            if (args.length < 4)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.put(args[1], args[2]);
-                                };
-                            break;
-                        case 'append':
-                            if (args.length < 4)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.append(args[1], args[2]);
-                                };
-                            break;
-                        case 'rename':
-                            if (args.length === 3)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.rename(args[1], args[2]);
-                                };
-                            break;
-                        case 'delete':
-                            if (args.length === 2)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.delete(args[1]);
-                                };
-                            break;
-                        case 'cd':
-                            if (args.length === 2)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.cd(args[1]);
-                                };
-                            break;
-                        case 'mkdir':
-                            if (args.length === 2)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.mkdir(args[1]);
-                                };
-                            break;
-                        case 'pwd':
-                            if (args.length === 1)
-                                return (service) => {
-                                    core.info(`Execute '${command}'`);
-                                    return service.pwd();
-                                };
-                            break;
-                    }
+    _toCommands(lines) {
+        return lines.map(command => {
+            const args = this._toArgv(command);
+            if (args.length > 0) {
+                switch (args[0]) {
+                    case 'ls':
+                        if (args.length === 1)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.list();
+                            };
+                        if (args.length === 2)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.list(args[1]);
+                            };
+                        break;
+                    case 'get':
+                        if (args.length < 4)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.get(args[1], args[2]);
+                            };
+                        break;
+                    case 'put':
+                        if (args.length < 4)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.put(args[1], args[2]);
+                            };
+                        break;
+                    case 'append':
+                        if (args.length < 4)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.append(args[1], args[2]);
+                            };
+                        break;
+                    case 'rename':
+                        if (args.length === 3)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.rename(args[1], args[2]);
+                            };
+                        break;
+                    case 'delete':
+                        if (args.length === 2)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.delete(args[1]);
+                            };
+                        break;
+                    case 'cd':
+                        if (args.length === 2)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.cd(args[1]);
+                            };
+                        break;
+                    case 'mkdir':
+                        if (args.length === 2)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.mkdir(args[1]);
+                            };
+                        break;
+                    case 'rmdir':
+                        if (args.length === 2)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.rmdir(args[1]);
+                            };
+                        break;
+                    case 'pwd':
+                        if (args.length === 1)
+                            return () => {
+                                core.info(`Execute '${command}'`);
+                                return this.pwd();
+                            };
+                        break;
                 }
-                throw new Error(`Unsupported command "${command}"`);
-            });
+            }
+            throw new Error(`Unsupported command "${command}"`);
+        });
+    }
+    run(lines, throwing = true) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const commands = this._toCommands(lines);
             core.info('Executing commands');
-            let result = {
+            const output = [];
+            const result = {
                 succeed: 0,
-                message: null,
-                output: []
+                message: null
             };
             try {
-                for (const command of executable) {
-                    const r = yield command(this);
+                for (const command of commands) {
+                    const r = yield command();
                     result.succeed++;
-                    result.output.push(r);
+                    output.push(r);
                 }
             }
             catch (e) {
                 if (throwing)
                     throw e;
                 result.message = e.message;
-                core.warning(e.message);
+                core.error(e.message);
             }
+            output.forEach((value, index) => result[`output_${index}`] = value);
             return result;
         });
     }
-    list() {
+    list(path) {
         return __awaiter(this, void 0, void 0, function* () {
             return execute(callback => {
                 core.info('Listing');
-                this.client.list((error, listing) => {
+                const cb = (error, listing) => {
                     if (listing) {
                         for (const element of listing) {
                             core.info(JSON.stringify(element));
                         }
                     }
                     callback(error, listing != null ? JSON.stringify(listing) : null);
-                });
+                };
+                if (path != null)
+                    this.client.list(path, cb);
+                else
+                    this.client.list(cb);
             });
         });
     }
@@ -9267,8 +9288,8 @@ const io_helper_1 = __nccwpck_require__(3262);
                 client.connect(inputs);
             });
             if (service != null) {
-                const succeed = yield service.run(inputs.commands);
-                (0, io_helper_1.setOutputs)({ succeed });
+                const result = yield service.run(inputs.commands, inputs.throwing);
+                (0, io_helper_1.setOutputs)(result);
             }
             client.end();
         }
@@ -9323,7 +9344,8 @@ function isNotBlank(value) {
 exports.isNotBlank = isNotBlank;
 function getInputs() {
     const result = {
-        commands: []
+        commands: [],
+        throwing: true
     };
     result.host = core.getInput(constants_1.Inputs.Host, { required: true });
     const port = core.getInput(constants_1.Inputs.Port, { required: false });
@@ -9358,6 +9380,8 @@ function getInputs() {
     if (debug) {
         result.debug = message => core.debug(message);
     }
+    const throwing = core.getBooleanInput(constants_1.Inputs.Throwing, { required: false });
+    result.throwing = throwing == null || throwing;
     return result;
 }
 exports.getInputs = getInputs;

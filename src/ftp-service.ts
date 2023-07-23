@@ -4,7 +4,7 @@ import Client from 'ftp';
 import {join} from 'path';
 import {isBlank, isNotBlank} from './io-helper';
 
-declare type Command = (service: FtpService) => Promise<any>;
+declare type Command = () => Promise<any>;
 
 export function execute<T>(handler: (callback: (error: Error | null, result?: T | undefined) => void) => void): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
@@ -51,77 +51,77 @@ export class FtpService {
                 switch (args[0]) {
                     case 'ls':
                         if (args.length === 1)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.list();
+                                return this.list();
                             };
                         if (args.length === 2)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.list(args[1]);
+                                return this.list(args[1]);
                             };
                         break;
                     case 'get':
                         if (args.length < 4)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.get(args[1], args[2]);
+                                return this.get(args[1], args[2]);
                             };
                         break;
                     case 'put':
                         if (args.length < 4)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.put(args[1], args[2]);
+                                return this.put(args[1], args[2]);
                             };
                         break;
                     case 'append':
                         if (args.length < 4)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.append(args[1], args[2]);
+                                return this.append(args[1], args[2]);
                             };
                         break;
                     case 'rename':
                         if (args.length === 3)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.rename(args[1], args[2]);
+                                return this.rename(args[1], args[2]);
                             };
                         break;
                     case 'delete':
                         if (args.length === 2)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.delete(args[1]);
+                                return this.delete(args[1]);
                             }
                         break;
                     case 'cd':
                         if (args.length === 2)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.cd(args[1]);
+                                return this.cd(args[1]);
                             };
                         break;
                     case 'mkdir':
                         if (args.length === 2)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.mkdir(args[1]);
+                                return this.mkdir(args[1]);
                             };
                         break;
                     case 'rmdir':
                         if (args.length === 2)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.rmdir(args[1]);
+                                return this.rmdir(args[1]);
                             };
                         break;
                     case 'pwd':
                         if (args.length === 1)
-                            return (service) => {
+                            return () => {
                                 core.info(`Execute '${command}'`);
-                                return service.pwd();
+                                return this.pwd();
                             };
                         break;
                 }
@@ -133,16 +133,16 @@ export class FtpService {
     async run(lines: string[], throwing: boolean = true): Promise<any> {
         const commands: Command[] = this._toCommands(lines);
         core.info('Executing commands');
-        let result: any = {
+        const output = [];
+        const result: any = {
             succeed: 0,
-            message: null,
-            output: []
+            message: null
         };
         try {
             for (const command of commands) {
-                const r: any = await command(this);
+                const r: any = await command();
                 result.succeed++;
-                result.output.push(r);
+                output.push(r);
             }
         } catch (e: any) {
             if (throwing)
@@ -150,6 +150,7 @@ export class FtpService {
             result.message = e.message;
             core.error(e.message);
         }
+        output.forEach((value, index) => result[`output_${index}`] = value);
         return result;
     }
 

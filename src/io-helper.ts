@@ -65,7 +65,8 @@ export function getInputs(): FtpInputs {
         result.debug = message => core.debug(message);
     }
 
-    result.throwing = core.getBooleanInput(Inputs.Throwing, {required: false});
+    const throwing = core.getBooleanInput(Inputs.Throwing, {required: false});
+    result.throwing = throwing == null || throwing;
 
     return result;
 }
