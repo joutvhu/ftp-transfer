@@ -105,6 +105,13 @@ export class FtpService {
                                 return service.mkdir(args[1]);
                             };
                         break;
+                    case 'pwd':
+                        if (args.length === 1)
+                            return (service) => {
+                                console.log(`Execute '${command}'`);
+                                return service.pwd();
+                            };
+                        break;
                 }
             }
             throw new Error(`Unsupported command "${command}"`);
@@ -137,7 +144,7 @@ export class FtpService {
                         console.log(JSON.stringify(element));
                     }
                 }
-                callback(error);
+                callback(error, listing != null ? JSON.stringify(listing) : null);
             });
         });
     }
@@ -147,6 +154,7 @@ export class FtpService {
     }
 
     private async _download(work: string, name: string, dest: string, override?: string) {
+        let result = 0;
         const elements: Client.ListingElement[] | undefined = await execute(callback => this.client.list(callback));
         if (elements != null) {
             const dirs: string[] = [];
@@ -165,6 +173,7 @@ export class FtpService {
                                 callback(error, d);
                             }));
                         console.log(`Downloaded file ${this._join(work, element.name)} to ${p}`);
+                        result++;
                     }
                 }
             }
@@ -179,10 +188,11 @@ export class FtpService {
                 } else {
                     fs.mkdirSync(directory);
                 }
-                await this._download(this._join(work, dir), '', directory);
+                result += await this._download(this._join(work, dir), '', directory);
                 await execute(callback => this.client.cdup(callback));
             }
         }
+        return result;
     }
 
     private async _root(): Promise<string> {
@@ -286,9 +296,10 @@ export class FtpService {
             work = await execute(callback => this.client.pwd(callback)) as any;
         } else
             throw new Error(`Path ${path} is invalid.`);
-        await this._download(work, next, dest, over);
+        const result = await this._download(work, next, dest, over);
         if (back != null)
             await this._back(back.back);
+        return result;
     }
 
     private _split(path: string, blank: boolean = true): string[] {
@@ -384,8 +395,10 @@ export class FtpService {
 
     private async _upload(append: boolean, path: string, work: string, name?: string) {
         const lstat = fs.lstatSync(path);
+        let result = 0;
         if (lstat.isFile()) {
             await this._transfer(append, path, work, name ?? this._basename(path));
+            result++;
         } else if (lstat.isDirectory()) {
             if (isNotBlank(name)) {
                 let create = true;
@@ -408,7 +421,7 @@ export class FtpService {
             const elements = fs.readdirSync(path);
             for (const element of elements) {
                 const p = join(path, element);
-                await this._upload(append, p, work, element);
+                result += await this._upload(append, p, work, element);
             }
             if (isNotBlank(name)) {
                 await execute(callback => this.client.cdup(callback));
@@ -416,6 +429,7 @@ export class FtpService {
         } else {
             throw new Error(`Path ${path} is invalid.`);
         }
+        return result;
     }
 
     private async _put(append: boolean, path: string, dest?: string) {
@@ -432,23 +446,25 @@ export class FtpService {
         }
         if (isNotBlank(work))
             back = await this._cd(work);
-        await this._upload(append, path, work, next);
+        const result = await this._upload(append, path, work, next);
         if (back != null) {
             await this._back(back.back);
         }
+        return result;
     }
 
     async put(path: string, dest?: string) {
-        await this._put(false, path, dest);
+        return await this._put(false, path, dest);
     }
 
     async append(path: string, dest?: string) {
-        await this._put(true, path, dest);
+        return await this._put(true, path, dest);
     }
 
     async rename(oldPath: string, newPath: string) {
         await execute(callback => this.client.rename(oldPath, newPath, callback));
         console.log(`Renamed ${oldPath} to ${newPath}`);
+        return true;
     }
 
     async delete(path: string) {
@@ -458,47 +474,61 @@ export class FtpService {
             throw new Error(`The path ${path} is invalid.`);
         const name = paths[len - 1];
         const back = await this._cd(paths.slice(0, len - 1), false, false);
+        let result = 0;
         if (back.success) {
             const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
             const type = elements.find(value => value.name === name)?.type;
             if (type == null)
                 console.warn(`The path ${path} does not exits.`);
             else if (type === 'd') {
-                await this._rmdir(name, paths.join('/'));
+                result += await this._rmdir(name, paths.join('/'));
                 console.log(`Deleted directory ${path}`);
             } else if (type === '-') {
                 await execute(callback => this.client.delete(name, callback));
                 console.log(`Deleted file ${path}`);
+                result++;
             }
         }
         await this._back(back.back);
+        return result;
     }
 
     async cd(path: string) {
         await this._cd(path, false);
         console.log(`Changed working directory to ${path}`);
+        return true;
+    }
+
+    async pwd() {
+        const path: string = await execute(callback => this.client.pwd(callback)) as any;
+        console.log(`Current directory ${path}`);
+        return path;
     }
 
     async mkdir(path: string) {
         const back = await this._cd(path, true);
         console.log(`Created directory ${path}`);
         await this._back(back.back);
+        return true;
     }
 
     private async _rmdir(name: string, path: string) {
+        let result = 0;
         await execute(callback => this.client.cwd(name, callback));
         const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
         for (const element of elements) {
             if (element.type === 'd') {
-                await this._rmdir(element.name, this._join(path, element.name));
+                result += await this._rmdir(element.name, this._join(path, element.name));
             } else {
                 await execute(callback => this.client.delete(element.name, callback));
                 console.log(`Deleted file ${this._join(path, element.name)}`);
+                result++;
             }
         }
         await execute(callback => this.client.cdup(callback));
         await execute(callback => this.client.rmdir(name, callback));
         console.log(`Removed directory ${path}`);
+        return result;
     }
 
     async rmdir(path: string) {
@@ -507,9 +537,11 @@ export class FtpService {
         if (len == 0 || paths[len - 1] === '')
             throw new Error(`The path ${path} is invalid.`);
         const back = await this._cd(paths.slice(0, len - 1), false);
+        let result = 0;
         if (back.success) {
-            await this._rmdir(paths[len - 1], paths.join('/'));
+            result += await this._rmdir(paths[len - 1], paths.join('/'));
         }
         await this._back(back.back);
+        return result;
     }
 }
