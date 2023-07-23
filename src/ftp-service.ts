@@ -1,4 +1,4 @@
-// import * as core from '@actions/core';
+import * as core from '@actions/core';
 import * as fs from 'fs';
 import Client from 'ftp';
 import {join} from 'path';
@@ -52,63 +52,63 @@ export class FtpService {
                     case 'ls':
                         if (args.length === 1)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.list();
                             };
                         break;
                     case 'get':
                         if (args.length < 4)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.get(args[1], args[2]);
                             };
                         break;
                     case 'put':
                         if (args.length < 4)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.put(args[1], args[2]);
                             };
                         break;
                     case 'append':
                         if (args.length < 4)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.append(args[1], args[2]);
                             };
                         break;
                     case 'rename':
                         if (args.length === 3)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.rename(args[1], args[2]);
                             };
                         break;
                     case 'delete':
                         if (args.length === 2)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.delete(args[1]);
                             }
                         break;
                     case 'cd':
                         if (args.length === 2)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.cd(args[1]);
                             };
                         break;
                     case 'mkdir':
                         if (args.length === 2)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.mkdir(args[1]);
                             };
                         break;
                     case 'pwd':
                         if (args.length === 1)
                             return (service) => {
-                                console.log(`Execute '${command}'`);
+                                core.info(`Execute '${command}'`);
                                 return service.pwd();
                             };
                         break;
@@ -116,32 +116,34 @@ export class FtpService {
             }
             throw new Error(`Unsupported command "${command}"`);
         });
-        console.log('Executing commands');
-        let result = {
+        core.info('Executing commands');
+        let result: any = {
             succeed: 0,
-            message: null
+            message: null,
+            output: []
         };
         try {
             for (const command of executable) {
-                await command(this);
+                const r: any = await command(this);
                 result.succeed++;
+                result.output.push(r);
             }
         } catch (e: any) {
             if (throwing)
                 throw e;
             result.message = e.message;
-            console.warn(e.message);
+            core.warning(e.message);
         }
         return result;
     }
 
     async list() {
         return execute(callback => {
-            console.log('Listing');
+            core.info('Listing');
             this.client.list((error, listing) => {
                 if (listing) {
                     for (const element of listing) {
-                        console.log(JSON.stringify(element));
+                        core.info(JSON.stringify(element));
                     }
                 }
                 callback(error, listing != null ? JSON.stringify(listing) : null);
@@ -172,7 +174,7 @@ export class FtpService {
                                 }
                                 callback(error, d);
                             }));
-                        console.log(`Downloaded file ${this._join(work, element.name)} to ${p}`);
+                        core.info(`Downloaded file ${this._join(work, element.name)} to ${p}`);
                         result++;
                     }
                 }
@@ -368,7 +370,7 @@ export class FtpService {
                     else if (exits)
                         throw new Error(`The path ${path} does not exits.`)
                     else {
-                        console.warn(`The path ${path} does not exits.`);
+                        core.warning(`The path ${path} does not exits.`);
                         return {success: false, back};
                     }
                 }
@@ -390,7 +392,7 @@ export class FtpService {
             else
                 this.client.put(path, name, callback);
         });
-        console.log(`Uploaded file ${path} to ${this._join(work, name)}`);
+        core.info(`Uploaded file ${path} to ${this._join(work, name)}`);
     }
 
     private async _upload(append: boolean, path: string, work: string, name?: string) {
@@ -463,7 +465,7 @@ export class FtpService {
 
     async rename(oldPath: string, newPath: string) {
         await execute(callback => this.client.rename(oldPath, newPath, callback));
-        console.log(`Renamed ${oldPath} to ${newPath}`);
+        core.info(`Renamed ${oldPath} to ${newPath}`);
         return true;
     }
 
@@ -479,13 +481,13 @@ export class FtpService {
             const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
             const type = elements.find(value => value.name === name)?.type;
             if (type == null)
-                console.warn(`The path ${path} does not exits.`);
+                core.warning(`The path ${path} does not exits.`);
             else if (type === 'd') {
                 result += await this._rmdir(name, paths.join('/'));
-                console.log(`Deleted directory ${path}`);
+                core.info(`Deleted directory ${path}`);
             } else if (type === '-') {
                 await execute(callback => this.client.delete(name, callback));
-                console.log(`Deleted file ${path}`);
+                core.info(`Deleted file ${path}`);
                 result++;
             }
         }
@@ -495,19 +497,19 @@ export class FtpService {
 
     async cd(path: string) {
         await this._cd(path, false);
-        console.log(`Changed working directory to ${path}`);
+        core.info(`Changed working directory to ${path}`);
         return true;
     }
 
     async pwd() {
         const path: string = await execute(callback => this.client.pwd(callback)) as any;
-        console.log(`Current directory ${path}`);
+        core.info(`Current directory ${path}`);
         return path;
     }
 
     async mkdir(path: string) {
         const back = await this._cd(path, true);
-        console.log(`Created directory ${path}`);
+        core.info(`Created directory ${path}`);
         await this._back(back.back);
         return true;
     }
@@ -521,13 +523,13 @@ export class FtpService {
                 result += await this._rmdir(element.name, this._join(path, element.name));
             } else {
                 await execute(callback => this.client.delete(element.name, callback));
-                console.log(`Deleted file ${this._join(path, element.name)}`);
+                core.info(`Deleted file ${this._join(path, element.name)}`);
                 result++;
             }
         }
         await execute(callback => this.client.cdup(callback));
         await execute(callback => this.client.rmdir(name, callback));
-        console.log(`Removed directory ${path}`);
+        core.info(`Removed directory ${path}`);
         return result;
     }
 
