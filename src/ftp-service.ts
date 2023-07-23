@@ -291,11 +291,41 @@ export class FtpService {
         }
     }
 
-    private async _cd(path: string | string[], create: boolean = true): Promise<number | string> {
-        let back = null, n = 0;
+    private _split(path: string, blank: boolean = true): string[] {
+        const paths = path!.split('/');
+        const result: string[] = [];
+        let s = false, len = paths.length;
+        for (let i = 0; i < len; i++) {
+            const p = paths[i];
+            if (isBlank(p)) {
+                if (i > 0) {
+                    if (i == len - 1) {
+                        if (!blank) break;
+                    } else
+                        throw new Error(`The path ${path} is invalid.`);
+                }
+                s = true;
+            } else if (p === '.') {
+                if (i > 0)
+                    throw new Error(`The path ${path} is invalid.`);
+                s = true;
+                continue;
+            } else if (p === '..') {
+                if (s)
+                    throw new Error(`The path ${path} is invalid.`);
+            } else {
+                s = true;
+            }
+            result.push(p);
+        }
+        return result;
+    }
+
+    private async _cd(path: string | string[], create: boolean = true, exits: boolean = true): Promise<{ success: boolean; back: number | string; }> {
+        let back: string | number = 0;
         let paths: string[] = [];
         if (typeof path === 'string')
-            paths = path!.split('/');
+            paths = this._split(path, false);
         else {
             if (path != null)
                 paths = path;
@@ -304,32 +334,41 @@ export class FtpService {
         for (let i = 0, len = paths.length; i < len; i++) {
             const p = paths[i];
             if (isBlank(p)) {
-                if (i > 0 && i < len - 1)
-                    throw new Error(`The path ${path} is invalid.`);
-                else
+                if (i === 0)
                     back = await this._root();
+                else
+                    throw new Error(`The path ${path} is invalid.`);
             } else if (p === '.') {
                 if (i == 0)
                     continue;
                 else
                     throw new Error(`The path ${path} is invalid.`);
+            } else if (p === '..') {
+                if (back === 0)
+                    back = await execute(callback => this.client.pwd(callback)) as any;
+                await execute(callback => this.client.cdup(callback));
             } else {
                 const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
                 const type = elements.find(value => value.name === p)?.type;
                 if (type == null) {
                     if (create)
                         await execute(callback => this.client.mkdir(p, callback));
-                    else
+                    else if (exits)
                         throw new Error(`The path ${path} does not exits.`)
+                    else {
+                        console.warn(`The path ${path} does not exits.`);
+                        return {success: false, back};
+                    }
                 }
                 if (type == null || type === 'd')
                     await execute(callback => this.client.cwd(p, callback));
                 else
                     throw new Error(`The path ${path} is not a directory.`);
-                n++;
+                if (typeof back === 'number')
+                    back++;
             }
         }
-        return back != null ? back : n;
+        return {success: true, back};
     }
 
     private async _transfer(append: boolean, path: string, work: string, name: string) {
@@ -370,7 +409,7 @@ export class FtpService {
     }
 
     private async _put(append: boolean, path: string, dest?: string) {
-        let back: string | number = 0, work = '', next = '';
+        let back: any, work = '', next = '';
         if (isBlank(dest)) {
             work = '';
             next = path.endsWith('/') ? '' : this._basename(path);
@@ -385,7 +424,7 @@ export class FtpService {
             back = await this._cd(work);
         await this._upload(append, path, work, next);
         if (back != null) {
-            await this._back(back);
+            await this._back(back.back);
         }
     }
 
@@ -403,88 +442,62 @@ export class FtpService {
     }
 
     async delete(path: string) {
-        await execute(callback => this.client.delete(path, callback));
-        console.log(`Deleted ${path}`);
+        const paths = this._split(path, false);
+        const len = paths.length;
+        if (len == 0 || paths[len - 1] === '')
+            throw new Error(`The path ${path} is invalid.`);
+        const name = paths[len - 1];
+        const back = await this._cd(paths.slice(0, len - 1), false, false);
+        if (back.success) {
+            const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
+            const type = elements.find(value => value.name === name)?.type;
+            if (type == null)
+                console.warn(`The path ${path} does not exits.`);
+            else if (type === 'd') {
+                await this._rmdir(name);
+                console.log(`Deleted directory ${path}`);
+            } else if (type === '-') {
+                await execute(callback => this.client.delete(name, callback));
+                console.log(`Deleted file ${path}`);
+            }
+        }
+        await this._back(back.back);
     }
 
     async cd(path: string) {
-        const paths = path.split('/');
-        for (const p of paths) {
-            if (isBlank(p))
-                break;
-            if (p === '..')
-                await execute(callback => this.client.cdup(callback));
-            else
-                await execute(callback => this.client.cwd(path, callback));
-        }
+        await this._cd(path, false);
         console.log(`Changed working directory to ${path}`);
     }
 
     async mkdir(path: string) {
-        const back = await this._cd(path);
-        console.log(`Created directory to ${path}`);
-        await this._back(back);
+        const back = await this._cd(path, true);
+        console.log(`Created directory ${path}`);
+        await this._back(back.back);
     }
 
-    private _split(path: string, blank: boolean = true): string[] {
-        const paths = path!.split('/');
-        const result: string[] = [];
-        let s = false, len = paths.length;
-        for (let i = 0; i < len; i++) {
-            const p = paths[i];
-            if (isBlank(p)) {
-                if (i > 0) {
-                    if (i == len - 1) {
-                        if (!blank) break;
-                    } else
-                        throw new Error(`The path ${path} is invalid.`);
-                }
-                s = true;
-            } else if (p === '.') {
-                if (i > 0)
-                    throw new Error(`The path ${path} is invalid.`);
-                s = true;
-                continue;
-            } else if (p === '..') {
-                if (s)
-                    throw new Error(`The path ${path} is invalid.`);
+    private async _rmdir(name: string) {
+        await execute(callback => this.client.cwd(name, callback));
+        const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
+        for (const element of elements) {
+            if (element.type === 'd') {
+                await this._rmdir(element.name);
             } else {
-                s = true;
+                await execute(callback => this.client.delete(element.name, callback));
             }
-            result.push(p);
         }
-        return result;
+        await execute(callback => this.client.cdup(callback));
     }
 
     async rmdir(path: string) {
         const paths = this._split(path, false);
         const len = paths.length;
-        let back: string | number = 0;
         if (len == 0 || paths[len - 1] === '')
             throw new Error(`The path ${path} is invalid.`);
-        for (let i = 0; i < len; i++) {
-            const p = paths[i];
-            if (p === '' && i === 0)
-                back = await this._root();
-            else if (p === '..') {
-                if (back === 0)
-                    back = await execute(callback => this.client.pwd(callback)) as any;
-                await execute(callback => this.client.cdup(callback));
-            } else {
-                const elements: any[] = await execute(callback => this.client.list(callback)) ?? [];
-                const type = elements.find(value => value.name === p)?.type;
-                if (type === 'd')
-                    await execute(callback => this.client.cwd(p, callback));
-                else if (type == null)
-                    throw new Error(`The path ${path} does not exits.`)
-                else
-                    throw new Error(`The path ${path} is not a directory.`);
-                if (typeof back === 'number')
-                    back++;
-            }
+        const back = await this._cd(paths.slice(0, len - 1), false);
+        if (back.success) {
+            await this._rmdir(paths[len - 1]);
+            console.log(`Removed directory ${path}`);
         }
-        await execute(callback => this.client.rmdir(paths[len - 1], false, callback));
-        console.log(`Removed directory ${path}`);
-        await this._back(back);
+        await this._back(back.back);
     }
 }
