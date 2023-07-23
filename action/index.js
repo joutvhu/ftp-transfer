@@ -8849,7 +8849,8 @@ class FtpService {
                 const pn = current.split('/');
                 const l = pn.length;
                 if (l > 1 && pn[0] === '') {
-                    let index = 0, len = paths.length;
+                    let index = 0;
+                    const len = paths.length;
                     for (let i = 1; i < len && i < l; i++) {
                         const p = paths[i];
                         if (p !== pn[i]) {
@@ -8949,7 +8950,8 @@ class FtpService {
     _split(path, blank = true) {
         const paths = path.split('/');
         const result = [];
-        let s = false, len = paths.length;
+        const len = paths.length;
+        let s = false;
         for (let i = 0; i < len; i++) {
             const p = paths[i];
             if ((0, io_helper_1.isBlank)(p)) {
