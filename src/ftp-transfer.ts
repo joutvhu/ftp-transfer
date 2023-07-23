@@ -18,8 +18,8 @@ import {FtpInputs, getInputs, setOutputs} from './io-helper';
             client.connect(inputs);
         });
         if (service != null) {
-            const succeed = await service.run(inputs.commands);
-            setOutputs({succeed});
+            const result = await service.run(inputs.commands, inputs.throwing);
+            setOutputs(result);
         }
         client.end();
     } catch (err: any) {

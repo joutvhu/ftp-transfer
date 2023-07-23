@@ -4,6 +4,7 @@ import {Inputs, Outputs} from './constants';
 
 export interface FtpInputs extends Client.Options {
     commands: string[];
+    throwing: boolean;
 }
 
 export function isBlank(value: any): boolean {
@@ -19,7 +20,8 @@ export function isNotBlank(value: any): boolean {
  */
 export function getInputs(): FtpInputs {
     const result: FtpInputs = {
-        commands: []
+        commands: [],
+        throwing: true
     };
 
     result.host = core.getInput(Inputs.Host, {required: true});
@@ -62,6 +64,8 @@ export function getInputs(): FtpInputs {
     if (debug) {
         result.debug = message => core.debug(message);
     }
+
+    result.throwing = core.getBooleanInput(Inputs.Throwing, {required: false});
 
     return result;
 }

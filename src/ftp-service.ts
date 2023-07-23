@@ -132,7 +132,7 @@ export class FtpService {
             if (throwing)
                 throw e;
             result.message = e.message;
-            core.warning(e.message);
+            core.error(e.message);
         }
         return result;
     }
