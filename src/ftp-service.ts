@@ -204,22 +204,24 @@ export class FtpService {
     }
 
     private async _back(path: string | number) {
-        if (typeof path === 'string') {
-            const paths = path.split('/');
-            for (let i = 0, len = paths.length; i < len; i++) {
-                if (isBlank(paths[i])) {
-                    if (i === 0)
-                        await this._root();
-                    else
-                        break;
-                } else {
-                    await execute(callback => this.client.cwd(paths[i], callback));
+        if (path != null) {
+            if (typeof path === 'string') {
+                const paths = path.split('/');
+                for (let i = 0, len = paths.length; i < len; i++) {
+                    if (isBlank(paths[i])) {
+                        if (i === 0)
+                            await this._root();
+                        else
+                            break;
+                    } else {
+                        await execute(callback => this.client.cwd(paths[i], callback));
+                    }
                 }
-            }
-        } else {
-            while (path > 0) {
-                await execute(callback => this.client.cdup(callback));
-                path--;
+            } else {
+                while (path > 0) {
+                    await execute(callback => this.client.cdup(callback));
+                    path--;
+                }
             }
         }
     }
@@ -256,39 +258,17 @@ export class FtpService {
         } else {
             dest = '.';
         }
-        const paths = path.split('/');
-        let back: string | number = 0;
+        const paths = this._split(path, true);
+        let back: any;
         if (paths.length > 0) {
-            let w = paths, d = [];
-            if (!path.endsWith('/')) {
-                w = paths.slice(0, paths.length - 1);
-                next = paths[paths.length - 1];
-                if (next === '.') next = '';
-            }
-            for (let i = 0, len = w.length; i < len; i++) {
-                if (isBlank(w[i])) {
-                    if (i > 0)
-                        throw new Error(`Path ${path} is invalid.`);
-                    else
-                        back = await this._root();
-                } else if (w[i] === '.') {
-                    if (i == 0)
-                        continue;
-                    else
-                        throw new Error(`Path ${path} is invalid.`);
-                } else {
-                    await execute(callback => this.client.cwd(w[i], callback));
-                    d.push(w[i]);
-                    if (typeof back === 'number')
-                        back++;
-                }
-            }
-            work = d.join('/');
-        }
+            next = paths[paths.length - 1];
+            back = await this._cd(paths.slice(0, paths.length - 1), false);
+            work = await execute(callback => this.client.pwd(callback)) as any;
+        } else
+            throw new Error(`Path ${path} is invalid.`);
         await this._download(work, next, dest, over);
-        if (back != null) {
-            await this._back(back);
-        }
+        if (back != null)
+            await this._back(back.back);
     }
 
     private _split(path: string, blank: boolean = true): string[] {
@@ -393,12 +373,8 @@ export class FtpService {
             }
             const elements = fs.readdirSync(path);
             for (const element of elements) {
-                const p = join(path, element)
-                if (fs.lstatSync(p).isDirectory()) {
-                    await this._upload(append, p, work, element);
-                } else {
-                    await this._transfer(append, p, work, element);
-                }
+                const p = join(path, element);
+                await this._upload(append, p, work, element);
             }
             if (isNotBlank(name)) {
                 await execute(callback => this.client.cdup(callback));
