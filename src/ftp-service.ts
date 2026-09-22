@@ -31,7 +31,7 @@ export class FtpService {
     }
 
     private _toArgv(command: string): string[] {
-        const regexp = /([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])([^\5]*?)\5/gi;
+        const regexp = /([^\s'"]([^\s'"]*(['"])(.*?)\3)+[^\s'"]*)|[^\s'"]+|(['"])(.*?)\5/gi;
         const value = command;
         const result: string[] = [];
         let match: RegExpExecArray | null;
