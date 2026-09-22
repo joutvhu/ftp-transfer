@@ -1,6 +1,6 @@
 {
   "name": "ftp-transfer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "GitHub Action to transfer files to and from a computer running an FTP server service.",
   "scripts": {
     "build": "npm run clean && tsc --project tsconfig.json",

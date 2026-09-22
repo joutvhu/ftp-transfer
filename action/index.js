@@ -9250,6 +9250,32 @@ XRegExp = XRegExp || (function (undef) {
 
 /***/ }),
 
+/***/ 1141:
+/***/ (() => {
+
+"use strict";
+
+const OriginalBuffer = global.Buffer;
+if (typeof OriginalBuffer === 'function') {
+    global.Buffer = new Proxy(OriginalBuffer, {
+        apply(target, _thisArg, args) {
+            if (typeof args[0] === 'number') {
+                return target.alloc(args[0]);
+            }
+            return Reflect.apply(target.from, target, args);
+        },
+        construct(target, args) {
+            if (typeof args[0] === 'number') {
+                return target.alloc(args[0]);
+            }
+            return Reflect.apply(target.from, target, args);
+        }
+    });
+}
+
+
+/***/ }),
+
 /***/ 7242:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -9995,6 +10021,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+__nccwpck_require__(1141);
 const core = __importStar(__nccwpck_require__(7484));
 const ftp_1 = __importDefault(__nccwpck_require__(1912));
 const ftp_service_1 = __nccwpck_require__(9915);
