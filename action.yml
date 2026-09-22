@@ -1,54 +1,57 @@
-name: FTP Transfer
-description: GitHub Action to transfer files to and from a computer running an FTP server service.
-author: Giao Ho
+name: 'FTP Transfer'
+description: 'GitHub Action to transfer files and directories to and from an FTP server.'
+author: 'Giao Ho'
+
 inputs:
   host:
-    description: The hostname or IP address of the FTP server.
+    description: 'The hostname or IP address of the FTP server.'
     required: true
   port:
-    description: The port of the FTP server.
+    description: 'The port of the FTP server.'
     required: false
     default: '21'
   username:
-    description: Username for authentication.
+    description: 'Username for authentication.'
     required: false
     default: 'anonymous'
   password:
-    description: Password for authentication.
+    description: 'Password for authentication.'
     required: false
     default: 'anonymous@'
   connTimeout:
-    description: How long (in milliseconds) to wait for the control connection to be established.
+    description: 'How long (in milliseconds) to wait for the control connection to be established.'
     required: false
     default: '10000'
   pasvTimeout:
-    description: How long (in milliseconds) to wait for a PASV data connection to be established.
+    description: 'How long (in milliseconds) to wait for a PASV data connection to be established.'
     required: false
     default: '10000'
   keepalive:
-    description: How often (in milliseconds) to send a "dummy" (NOOP) command to keep the connection alive.
+    description: 'How often (in milliseconds) to send a "dummy" (NOOP) command to keep the connection alive.'
     required: false
     default: '10000'
-
   commands:
-    description: The ftp commands
+    description: 'Multi-line list of FTP commands to execute sequentially.'
     required: true
-
   debug:
-    description: Show ouputs
+    description: 'Enable verbose debug output from the FTP client.'
     required: false
+    default: 'false'
   throwing:
-    description: Fail when command execution failed
+    description: 'Whether to fail the step if any command execution fails.'
     required: false
+    default: 'true'
+
 outputs:
   succeed:
-    description: Number of commands executed successfully.
+    description: 'Number of commands executed successfully.'
   message:
-    description: Error messsage.
+    description: 'Error message if command execution failed (when throwing is false).'
 
 runs:
-  using: node24
-  main: action/index.js
+  using: 'node24'
+  main: 'action/index.js'
+
 branding:
-  icon: paperclip
-  color: gray-dark
+  icon: 'upload-cloud'
+  color: 'gray-dark'
